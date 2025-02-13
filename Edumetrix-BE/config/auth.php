@@ -94,8 +94,8 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => 'password_reset_tokens',
-            'expire' => 60,
-            'throttle' => 60,
+            'expire' => 60, // 默認為 60 分鐘
+            'throttle' => 60, // 限制用戶每60秒內只能請求一次密碼重設
         ],
     ],
 
