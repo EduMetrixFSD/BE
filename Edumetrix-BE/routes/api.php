@@ -33,7 +33,8 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\SocialLoginController;
-
+// ------------------------------------------ 取得用戶資料、更新個人資料、用戶課程清單等功能
+use App\Http\Controllers\UserController; 
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -45,20 +46,36 @@ use App\Http\Controllers\Auth\SocialLoginController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-// ------------------------------------------ 註冊、登入、登出、忘記密碼、重設密碼、Google登入
+// 公開路由：不需要驗證
+Route::group(['prefix' => 'auth'], function () {
+    // 註冊
+    Route::post('/register', [RegisterController::class, 'register']);
 
-// 註冊
-Route::post('/register', [RegisterController::class, 'register']);
-// 登入
-Route::post('/login', [LoginController::class, 'login']);
-// 登出
-Route::middleware('auth:sanctum')->post('/logout', [LogoutController::class, 'logout']);
-// 忘記密碼
-Route::post('/forgot-password', [ForgotPasswordController::class, 'forgotPassword']);
-// 重設密碼
-Route::post('/reset-password', [ResetPasswordController::class, 'resetPassword']);
-// 第三方登入
-Route::post('/social-login', [SocialLoginController::class, 'socialLogin']);
+    // 登入
+    Route::post('/login', [LoginController::class, 'login']);
+
+    // 忘記密碼
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'forgotPassword']);
+
+    // 重設密碼
+    Route::post('/reset-password', [ResetPasswordController::class, 'resetPassword']);
+
+    // 第三方登入
+    Route::post('/social-login/google', [SocialLoginController::class, 'googleLogin']);
+    Route::post('/social-login/facebook', [SocialLoginController::class, 'facebookLogin']);
+});
+
+
+// 受保護的路由：需要登入 Token
+Route::group(['middleware' => ['auth:sanctum']], function () {
+    // 登出
+    Route::post('/auth/logout', [LogoutController::class, 'logout']);
+
+    // 獲取當前用戶信息
+    Route::get('/user', [UserController::class, 'getUser']);
+
+    // 其他需要身份驗證的 API
+    // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
+    // Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
+});
+
