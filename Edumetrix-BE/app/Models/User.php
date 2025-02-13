@@ -21,6 +21,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'provider',
+        'provider_id',
     ];
 
     /**
@@ -41,4 +43,13 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+    /**
+     * Check if user is registered via third-party login.
+     *
+     * @return bool
+     */
+    public function isSocialUser()
+    {
+        return !is_null($this->provider);
+    }
 }
