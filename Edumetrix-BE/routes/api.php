@@ -35,6 +35,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\SocialLoginController;
 // ------------------------------------------ 取得用戶資料、更新個人資料、用戶課程清單等功能
 use App\Http\Controllers\UserController; 
+use App\Http\Controllers\CourseController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -56,6 +57,11 @@ Route::prefix('auth')->group(function () {
     // 第三方登入
     Route::post('/social-login/google', [SocialLoginController::class, 'googleLogin']);
     // Route::post('/social-login/facebook', [SocialLoginController::class, 'facebookLogin']);
+    
+    // 搜尋功能
+    Route::get('/courses', [CourseController::class, 'index']);
+    Route::get('/courses/{id}', [CourseController::class, 'show']);
+    Route::put('/courses/{id}/hashtags', [CourseController::class, 'updateHashtags']);
 });
 
 
