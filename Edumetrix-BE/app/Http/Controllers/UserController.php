@@ -6,16 +6,27 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    // 獲取當前用戶資訊
+    /**
+    * 獲取當前用戶資訊
+    *
+    * @param  \Illuminate\Http\Request  $request
+    * @return \Illuminate\Http\JsonResponse
+    */
     public function getUser(Request $request)
     {
+        
         return response()->json([
             'success' => true,
             'data' => $request->user(),
         ]);
     }
 
-    // 更新用戶個人資料
+    /**
+     * 更新用戶個人資料
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateProfile(Request $request)
     {
         $request->validate([
@@ -33,7 +44,12 @@ class UserController extends Controller
         ]);
     }
 
-    // 獲取用戶課程清單（假設用戶有課程關聯）
+    /**
+     * 獲取用戶課程清單（假設用戶與課程之間存在多對多或一對多的關聯）
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getUserCourses(Request $request)
     {
         $courses = $request->user()->courses; // 假設 User 模型有 courses 關聯

@@ -46,35 +46,30 @@ use App\Http\Controllers\UserController;
 |
 */
 
-// 公開路由：不需要驗證
-Route::group(['prefix' => 'auth'], function () {
-    // 註冊
+// (1) 公開路由：不需要驗證
+Route::prefix('auth')->group(function () {
     Route::post('/register', [RegisterController::class, 'register']);
-
-    // 登入
     Route::post('/login', [LoginController::class, 'login']);
-
-    // 忘記密碼
     Route::post('/forgot-password', [ForgotPasswordController::class, 'forgotPassword']);
-
-    // 重設密碼
     Route::post('/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
     // 第三方登入
     Route::post('/social-login/google', [SocialLoginController::class, 'googleLogin']);
-    Route::post('/social-login/facebook', [SocialLoginController::class, 'facebookLogin']);
+    // Route::post('/social-login/facebook', [SocialLoginController::class, 'facebookLogin']);
 });
 
 
-// 受保護的路由：需要登入 Token
-Route::group(['middleware' => ['auth:sanctum']], function () {
-    // 登出
-    Route::post('/auth/logout', [LogoutController::class, 'logout']);
+// (2) 受保護路由：需要 Token
+Route::middleware('auth:sanctum')->group(function () {
+    // 建議統一前綴：'auth'
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout', [LogoutController::class, 'logout']);
+    });
 
-    // 獲取當前用戶信息
+    // 取得當前用戶資訊
     Route::get('/user', [UserController::class, 'getUser']);
 
-    // 其他需要身份驗證的 API
+    // 其他需要 Token 驗證的 API
     // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
     // Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 });

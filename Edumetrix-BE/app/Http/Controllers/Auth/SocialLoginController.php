@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class SocialLoginController extends Controller
 {
+    /**
+     * 使用 Google 登入
+     */
     public function googleLogin(Request $request)
     {
         // 使用 Socialite 驗證 Google 的 OAuth Token 並獲取用戶信息

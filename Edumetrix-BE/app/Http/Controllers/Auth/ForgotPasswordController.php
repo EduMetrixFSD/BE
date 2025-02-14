@@ -9,8 +9,12 @@ use Illuminate\Support\Facades\Password;
 
 class ForgotPasswordController extends Controller
 {
+    /**
+     * 發送「忘記密碼」的連結到用戶信箱
+     */
     public function forgotPassword(Request $request)
     {
+        // 驗證輸入的 email
         $request->validate(['email' => 'required|email']);
 
         // 處理 發送密碼重設連結 的核心方法

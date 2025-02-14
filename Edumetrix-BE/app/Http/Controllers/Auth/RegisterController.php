@@ -9,6 +9,9 @@ use App\Models\User;
 
 class RegisterController extends Controller
 {
+    /**
+     * 用戶註冊
+     */
     public function register(Request $request)
     {
         // 驗證資料

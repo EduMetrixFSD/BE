@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Password;
 
 class ResetPasswordController extends Controller
 {
+    /**
+     * 重設用戶密碼
+     */
     public function resetPassword(Request $request)
     {
         // 驗證請求的數據是否合法

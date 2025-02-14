@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
+    /**
+     * 用戶登入
+     */
     public function login(Request $request)
     {
         // 驗證資料
@@ -17,11 +20,12 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        // 確認用戶是否存在
-        $user = Auth::attempt($request->only('email', 'password'));
+        // 檢查用戶是否存在
+        $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
-            return response()->json(['message' => '無效的憑據'], 401);
+        // 驗證密碼
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => '登入失敗，無效的憑據'], 401);
         }
 
         // 檢查是否勾選記住我
