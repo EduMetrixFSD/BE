@@ -114,34 +114,4 @@ class CourseController extends Controller
         ], 200);
     }
 
-    public function updateHashtags(Request $request, $id)
-    {
-        // 根據課程 ID 取得課程
-        $course = Course::findOrFail($id);
-
-        // 接收傳入的標籤陣列（例如 ["Python", "前端"]）
-        $hashtags = $request->input('hashtags', []);
-
-        // 先將 hashtags 表中的標籤確認是否存在，若不存在就創建
-        $hashtagIds = [];
-        foreach ($hashtags as $ht) {
-        // 如果有 `#` 開頭，可移除
-        $cleanName = ltrim($ht, '#');
-
-        // 先查詢是否有相同的 name
-        $hashtagModel = Hashtag::firstOrCreate([
-            'name' => $cleanName
-        ]);
-        $hashtagIds[] = $hashtagModel->id;
-    }
-
-        // 同步課程的標籤
-        $course->hashtags()->sync($hashtagIds);
-
-        return response()->json([
-            'message' => '標籤更新成功',
-            'course' => $course->load('hashtags')
-        ]);
-    }
-
 }
