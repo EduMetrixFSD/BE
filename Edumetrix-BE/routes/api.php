@@ -73,7 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // 取得當前用戶資訊
-    Route::get('/user', [UserController::class, 'getUser']);
+    // Route::get('/user', [UserController::class, 'getUser']);
 
     // 其他需要 Token 驗證的 API
     // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
