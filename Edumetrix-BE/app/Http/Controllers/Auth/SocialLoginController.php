@@ -43,7 +43,7 @@ class SocialLoginController extends Controller
                 ]);
             }
 
-            // 登入用戶
+            // laravel 登入該用戶
             Auth::login($user);
 
             // 產生 Sanctum Token

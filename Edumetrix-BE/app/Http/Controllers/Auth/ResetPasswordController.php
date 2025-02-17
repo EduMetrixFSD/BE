@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Carbon\Carbon;
 use App\Models\User;
 
 class ResetPasswordController extends Controller
@@ -21,19 +23,27 @@ class ResetPasswordController extends Controller
             'email' => 'required|email',
             'password' => 'required|min:8|confirmed',
         ]);
-        // Laravel 提供的內建方法，用於處理密碼重設邏輯
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                // 為用戶加密並更新密碼
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->save();
-            }
-        );
-        // 檢查密碼重設的狀態並返回響應
-        return $status === Password::PASSWORD_RESET
-            ? response()->json(['message' => '密碼已成功重設'])
-            : response()->json(['message' => '重設密碼失敗'], 500);
+        // 檢查 token 是否存在
+        $resetEntry = DB::table('password_reset_tokens')
+                        ->where('email', $request->email)
+                        ->first();
+
+        if (!$resetEntry || !Hash::check($request->token, $resetEntry->token)) {
+            return response()->json(['message' => '無效的重設令牌'], 400);
+        }
+
+        // 更新密碼
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => '找不到該電子郵件的用戶'], 404);
+        }
+
+        // 更新用戶密碼
+        $user->update(['password' => Hash::make($request->password)]);
+
+        // 刪除 `password_resets` 記錄
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return response()->json(['message' => '密碼已成功重設']);
     }
 }
