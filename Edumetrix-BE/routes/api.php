@@ -58,9 +58,7 @@ Route::prefix('auth')->group(function () {
     Route::get('/social-login/google', [SocialLoginController::class, 'redirectToGoogle']);
     Route::get('/social-login/google/callback', [SocialLoginController::class, 'handleGoogleCallback']);
     // 搜尋功能
-    Route::get('/courses', [CourseController::class, 'index']);
-    Route::get('/courses/{id}', [CourseController::class, 'show']);
-    Route::put('/courses/{id}/tag', [CourseController::class, 'updatetags']);
+    Route::get('/courses/search', [CourseController::class, 'search']);
 });
 
 
