@@ -23,8 +23,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'avatar',
         'provider',
-        'provider_id',
+        'social_id'
     ];
 
     /**
@@ -47,6 +49,30 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    // 關聯：用戶擁有的課程（如果是老師）
+    public function courses()
+    {
+        return $this->hasMany(Course::class, 'teacher_id');
+    }
+
+    // 關聯：用戶的訂單
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    // 關聯：用戶的收藏
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    // 關聯：購物車
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
     /**
      * 判斷使用者是否為第三方登入的使用者。
      * 如果 provider 欄位不為 null，就表示此使用者
@@ -54,7 +80,7 @@ class User extends Authenticatable
      *
      * @return bool
      */
-    public function isSocialUser()
+    public function isSocialLogin()
     {
         return !is_null($this->provider);
     }

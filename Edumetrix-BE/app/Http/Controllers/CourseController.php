@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;            // 若需要使用 Str::random() 或其他字串工具
 use Illuminate\Support\Facades\DB;     // 若需要 DB Facade 進行原生查詢
 use App\Models\Course;                 // 引入 Course 模型
-use App\Models\Hashtag;                // 引入 Hashtag 模型
+use App\Models\Tag;                // 引入 Hashtag 模型
 use App\Models\Category;               // 引入 Category 模型
 
 class CourseController extends Controller
@@ -21,7 +21,7 @@ class CourseController extends Controller
         $category     = $request->input('category');     // 大類別 ID
         $subcategory  = $request->input('subcategory');  // 小類別 ID
         $sort         = $request->input('sort');         // 排序參數
-        $hashtag      = $request->input('hashtag');      // 單一標籤
+        $tag      = $request->input('tag');      // 單一標籤
         // 若需要多標籤，可以設計為 array，如 `hashtag=python,前端`
 
         $perPage      = $request->input('per_page', 10); // 每頁顯示數量
@@ -46,10 +46,10 @@ class CourseController extends Controller
         }
 
         // 5. 標籤篩選
-        if ($hashtag) {
+        if ($tag) {
         // 假設一次只篩選一個標籤
         // 如果是多標籤(陣列)，可使用 whereHas + whereIn 方式
-            $query->whereHas('hashtags', function ($hashtagQuery) use ($hashtag) {
+            $query->whereHas('tag', function ($hashtagQuery) use ($tag) {
         // 如果前端傳的是 `#Python`，可視情況去掉 `#`
         // 例如 $cleanHashtag = ltrim($hashtag, '#');
             $cleanHashtag = ltrim($hashtag, '#');

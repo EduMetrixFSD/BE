@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 // Laravel 提供的 密碼重置功能的工具類
 use Illuminate\Support\Facades\Password;
+use App\Models\User;
 
 class ForgotPasswordController extends Controller
 {

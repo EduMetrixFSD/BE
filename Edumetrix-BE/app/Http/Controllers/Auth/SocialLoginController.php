@@ -7,36 +7,55 @@ use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class SocialLoginController extends Controller
 {
     /**
      * 使用 Google 登入
      */
-    public function googleLogin(Request $request)
+    public function redirectToGoogle()
     {
-        // 使用 Socialite 驗證 Google 的 OAuth Token 並獲取用戶信息
-        // 使用 stateless() 以無狀態模式進行驗證，避免 CSRF 驗證問題
-        $googleUser = Socialite::driver('google')->stateless()->userFromToken($request->token);
+        return Socialite::driver('google')->redirect();
+    }
 
-        // 使用 firstOrCreate 方法檢查用戶是否已經存在
-        // 如果不存在，則根據提供的 email 和 name 自動創建新用戶
-        $user = User::firstOrCreate(
-            ['email' => $googleUser->email], // 檢查條件：Email 唯一性
-            [
-                'name' => $googleUser->name, // 新用戶的名稱
-                'password' => bcrypt(str_random(16)) // 自動生成一個隨機密碼，並進行加密
-            ]
-        );
+    /**
+     * Google 登入回調
+     */
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
-        // 為用戶生成 Sanctum Token，該 Token 將用於後續 API 驗證
-        $token = $user->createToken('auth_token')->plainTextToken;
+            // 檢查用戶是否已存在
+            $user = User::where('social_id', $googleUser->id)->where('provider', 'google')->first();
 
-        // 返回 JSON 格式的響應，包括登入成功信息、用戶資料和 Token
-        return response()->json([
-            'message' => '登入成功',
-            'user' => $user,
-            'token' => $token,
-        ]);
+            if (!$user) {
+                // 建立新用戶
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'provider' => 'google',
+                    'social_id' => $googleUser->id,
+                    'password' => Hash::make(uniqid()), // 產生隨機密碼
+                    'avatar' => $googleUser->avatar,
+                ]);
+            }
+
+            // 登入用戶
+            Auth::login($user);
+
+            // 產生 Sanctum Token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'message' => '登入成功',
+                'user' => $user,
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Google 登入失敗'], 500);
+        }
     }
 }

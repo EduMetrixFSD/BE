@@ -10,15 +10,22 @@ class Category extends Model
     use HasFactory;
     protected $fillable = ['name', 'parent_id'];
 
-    // 若需要樹狀結構，可使用自我關聯
-    public function parent()
-    {
-        return $this->belongsTo(Category::class, 'parent_id');
-    }
+   // 關聯：類別下的所有課程
+   public function courses()
+   {
+       return $this->hasMany(Course::class);
+   }
 
-    public function children()
-    {
-        return $this->hasMany(Category::class, 'parent_id');
-    }
+   // 關聯：父類別
+   public function parent()
+   {
+       return $this->belongsTo(Category::class, 'parent_id');
+   }
+
+   // 關聯：子類別
+   public function children()
+   {
+       return $this->hasMany(Category::class, 'parent_id');
+   }
 }
 

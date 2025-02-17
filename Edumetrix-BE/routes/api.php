@@ -55,13 +55,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
     // 第三方登入
-    Route::post('/social-login/google', [SocialLoginController::class, 'googleLogin']);
-    // Route::post('/social-login/facebook', [SocialLoginController::class, 'facebookLogin']);
-    
+    Route::get('/social-login/google', [SocialLoginController::class, 'redirectToGoogle']);
+    Route::get('/social-login/google/callback', [SocialLoginController::class, 'handleGoogleCallback']);
     // 搜尋功能
     Route::get('/courses', [CourseController::class, 'index']);
     Route::get('/courses/{id}', [CourseController::class, 'show']);
-    Route::put('/courses/{id}/hashtags', [CourseController::class, 'updateHashtags']);
+    Route::put('/courses/{id}/tag', [CourseController::class, 'updatetags']);
 });
 
 
@@ -79,4 +78,3 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
     // Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
 });
-

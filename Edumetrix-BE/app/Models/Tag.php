@@ -5,16 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Hashtag extends Model
+class Tag extends Model
 {
     use HasFactory;
 
     protected $fillable = ['name'];
 
-    // 與課程的多對多關係
+    // 關聯：標籤對應的課程
     public function courses()
     {
-        return $this->belongsToMany(Course::class, 'course_hashtags', 'hashtag_id', 'course_id');
+        return $this->belongsToMany(Course::class, 'course_tag');
     }
-
 }
