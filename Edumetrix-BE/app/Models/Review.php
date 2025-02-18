@@ -22,4 +22,24 @@ class Review extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // 自動更新average_rating (boot方法)
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function ($review) {
+            self::updateCourseRating($review->course_id);
+        });
+
+        static::deleted(function ($review) {
+            self::updateCourseRating($review->course_id);
+        });
+    }
+
+    private static function updateCourseRating($courseId)
+    {
+        $average = Review::where('course_id', $courseId)->avg('rating') ?? 0;
+        Course::where('id', $courseId)->update(['average_rating' => round($average, 1)]);
+    }
 }

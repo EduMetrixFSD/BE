@@ -17,12 +17,14 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price', 8, 2)->default(0);
             $table->string('cover_image', 255)->nullable();
+            $table->integer('enrolled_students')->default();
+            $table->decimal('average_rating', 3, 1)->default();
 
             $table->foreignId('teacher_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
             $table->foreignId('subcategory_id')->nullable()->constrained('categories')->onDelete('set null');
-
-            $table->enum('status', ['draft','published','closed'])->default('draft');
+            
+            // $table->enum('status', ['draft','published','closed'])->default('draft');
             $table->timestamps();
         });
     }
