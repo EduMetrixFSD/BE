@@ -2,29 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-// ------------------------------------------ 配置 Google/Facebook 開發者平台
-// 配置 Google OAuth 
-// 登錄 Google Cloud Console
-// 創建一個專案
-// 啟用 API 和服務
-// 在「API 和服務」中，啟用 Google+ API 或 OAuth 2.0
-// 創建憑據
-// 選擇 OAuth 2.0 用戶端 ID
-// 配置授權的 回調 URL（例如：https://yourdomain.com/api/social-login/google/callback）。
-// 添加憑據到 .env 文件
-
-// Google 配置
-// GOOGLE_CLIENT_ID=your-google-client-id
-// GOOGLE_CLIENT_SECRET=your-google-client-secret
-// GOOGLE_REDIRECT_URI=https://yourdomain.com/api/social-login/google/callback
-
-// Facebook 配置
-// FACEBOOK_CLIENT_ID=your-facebook-client-id
-// FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
-// FACEBOOK_REDIRECT_URI=https://yourdomain.com/api/social-login/facebook/callback
-
-
-
 // ------------------------------------------ 註冊、登入、登出、忘記密碼、重設密碼、Google登入
 // Google登入還沒有設置金鑰
 use App\Http\Controllers\Auth\RegisterController;
