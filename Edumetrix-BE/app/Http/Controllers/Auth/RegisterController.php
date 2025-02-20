@@ -14,6 +14,7 @@ class RegisterController extends Controller
      */
     public function register(Request $request)
     {
+        
         // 驗證資料
         $request->validate([
             'email' => 'required|email|unique:users',
@@ -34,5 +35,13 @@ class RegisterController extends Controller
             'user' => $user,
             'token' => $token,
         ], 201);
+    
+        
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ],500);
+        
     }
 }
+
