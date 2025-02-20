@@ -3,59 +3,108 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use App\Models\Course;
 
-// class UserController extends Controller
-// {
+class UserController extends Controller
+{
     /**
-    * 獲取當前用戶資訊
-    *
-    * @param  \Illuminate\Http\Request  $request
-    * @return \Illuminate\Http\JsonResponse
-    */
-    // public function getUser(Request $request)
-    // {
-        
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $request->user(),
-    //     ]);
-    // }
+     * 取得當前用戶資訊
+     */
+    public function getUser(Request $request)
+    {
+        return response()->json([
+            'user' => Auth::user(),
+        ]);
+    }
+
+    /**
+     * 取得用戶購買的課程
+     */
+    public function getUserCourses()
+    {
+        $user = Auth::user();
+
+        // 假設 orders 是購買紀錄，order_items 存儲購買的課程
+        $courses = $user->orders()->with('orderItems.course')->get()->pluck('orderItems.*.course')->flatten();
+
+        return response()->json([
+            'courses' => $courses,
+        ]);
+    }
 
     /**
      * 更新用戶個人資料
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
-    // public function updateProfile(Request $request)
-    // {
-    //     $request->validate([
-    //         'name' => 'nullable|string|max:255',
-    //         'email' => 'nullable|email|unique:users,email,' . $request->user()->id,
-    //     ]);
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
 
-    //     $user = $request->user();
-    //     $user->update($request->only('name', 'email'));
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            // 更新資料
+        ]);
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+        ]);
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => '個人資料更新成功',
-    //         'data' => $user,
-    //     ]);
-    // }
+        return response()->json([
+        'message' => '個人資料更新成功',
+        'user' => $user
+        ]);
+    }
+    /**
+     * 上傳頭像
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $user = auth()->user();
+
+        // 驗證檔案
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // 儲存檔案
+        $path = $request->file('avatar')->store('public/avatars');
+        $filename = str_replace('public/', '', $path); // 移除 `public/` 方便存取
+
+        // 更新用戶頭像
+        $user->update(['avatar' => $filename]);
+
+        return response()->json([
+            'message' => '頭像更新成功',
+            'avatar_url' => asset('storage/' . $filename)
+        ]);
+    }
+
 
     /**
-     * 獲取用戶課程清單（假設用戶與課程之間存在多對多或一對多的關聯）
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
+     * 修改密碼
      */
-    // public function getUserCourses(Request $request)
-    // {
-    //     $courses = $request->user()->courses; // 假設 User 模型有 courses 關聯
-    //     return response()->json([
-    //         'success' => true,
-    //         'data' => $courses,
-    //     ]);
-    // }
-// }
+    public function changePassword(Request $request)
+    {
+        // 驗證輸入
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ]);
+
+        // 驗證舊密碼
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => '舊密碼不正確'], 400);
+        }
+
+        // 更新密碼
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return response()->json(['message' => '密碼更新成功']);
+    }
+
+}
