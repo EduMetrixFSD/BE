@@ -9,7 +9,7 @@ class Cart extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'course_id', 'quantity'];
+    protected $fillable = ['user_id', 'course_id', 'quantity', 'locked_price'];
 
     // 關聯：使用者
     public function user()
@@ -22,4 +22,19 @@ class Cart extends Model
     {
         return $this->belongsTo(Course::class);
     }
+
+    // 計算購物車項目的總價
+    public function getTotalPrice()
+    {
+        // 如果有鎖定價格，使用鎖定的價格
+        return $this->quantity * ($this->locked_price ?? $this->course->price);
+    }
+
+    // 增加商品數量
+    public function incrementQuantity()
+    {
+        $this->quantity++;
+        $this->save();
+    }
 }
+

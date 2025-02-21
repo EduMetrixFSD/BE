@@ -13,6 +13,9 @@ use App\Http\Controllers\Auth\SocialLoginController;
 // ------------------------------------------ 取得用戶資料、更新個人資料、用戶課程清單等功能
 // use App\Http\Controllers\UserController; 
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,7 +38,10 @@ Route::prefix('auth')->group(function () {
     Route::get('/social-login/google', [SocialLoginController::class, 'redirectToGoogle']);
     Route::get('/social-login/google/callback', [SocialLoginController::class, 'handleGoogleCallback']);
     // 搜尋功能
-    Route::get('/courses/search', [CourseController::class, 'search']);
+});
+// (2) 課程相關路由
+Route::prefix('courses')->group(function () {
+    Route::get('/search', [CourseController::class, 'search']);
 });
 
 
@@ -48,5 +54,18 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::get('/user', [UserController::class, 'getUser']);
         // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
         // Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
+    });
+
+    // 購物車相關路由
+    Route::prefix('cart')->group(function () {
+        Route::post('/add', [CartController::class, 'addToCart']);
+        Route::get('/', [CartController::class, 'viewCart']);
+        Route::delete('/{id}', [CartController::class, 'removeFromCart']);
+        Route::delete('/clear', [CartController::class, 'clearCart']);
+    });
+    // 訂單相關路由
+    Route::prefix('order')->group(function () {
+        Route::post('/create', [OrderController::class, 'createOrder']);
+        Route::get('/user/orders', [OrderController::class, 'getUserOrders']);
     });
 });

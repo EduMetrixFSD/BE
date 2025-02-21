@@ -19,7 +19,7 @@ return new class extends Migration
             
             // 用於串接金流: e.g. ECPay
             $table->string('order_number', 50)->unique();
-            $table->decimal('total_amount', 8, 2)->default(0);
+            $table->decimal('total_price', 8, 2)->default(0);
             $table->enum('status', ['pending','paid','canceled','refunded'])->default('pending');
             $table->string('payment_method', 50)->nullable();  // e.g. credit_card, ecpay
             $table->string('trade_no', 50)->nullable();        // 第三方交易編號
