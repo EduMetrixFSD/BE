@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\FavoriteController;
 
 
 /*
@@ -36,6 +37,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart/remove/{id}', [CartController::class, 'removeFromCart']); // 移除購物車項目
     Route::post('/order/checkout', [OrderController::class, 'checkout']); // 結帳 API
     Route::get('/my-courses', [CourseController::class, 'myCourses']);
+    Route::get('/orders', [OrderController::class, 'index']);  // 查看所有訂單
+    Route::get('/orders/{id}', [OrderController::class, 'show']);  // 查看單筆訂單
+    Route::delete('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+    Route::post('/favorites/{course}', [FavoriteController::class, 'store']);
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::delete('/favorites/{course}', [FavoriteController::class, 'destroy']);
     
     Route::post('/logout', [AuthController::class, 'logout']);
 

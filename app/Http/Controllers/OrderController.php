@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -96,5 +97,38 @@ public function paymentSuccess(Request $request)
     return response()->json(['message' => '付款成功！']);
 }
 
+public function index()
+{
+    $user = auth()->user();
+    $orders = $user->orders()->with('items.course')->get();
+
+    return response()->json(['orders' => $orders]);
+}
+
+public function show($id)
+{
+    $user = auth()->user();
+    $order = $user->orders()->with('items.course')->find($id);
+
+    if (!$order) {
+        return response()->json(['message' => '訂單不存在'], 404);
+    }
+
+    return response()->json(['order' => $order]);
+}
+
+public function cancel($id)
+{
+    $user = auth()->user();
+    $order = $user->orders()->where('status', 'pending')->find($id);
+
+    if (!$order) {
+        return response()->json(['message' => '無法取消，訂單不存在或已付款'], 400);
+    }
+
+    $order->update(['status' => 'canceled']);
+
+    return response()->json(['message' => '訂單已取消', 'order' => $order]);
+}
 
 }
