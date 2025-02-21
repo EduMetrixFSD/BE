@@ -11,7 +11,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\SocialLoginController;
 // ------------------------------------------ 取得用戶資料、更新個人資料、用戶課程清單等功能
-use App\Http\Controllers\UserController; 
+// use App\Http\Controllers\UserController; 
 use App\Http\Controllers\CourseController;
 /*
 |--------------------------------------------------------------------------
@@ -45,8 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [LogoutController::class, 'logout']);
         // 取得當前用戶資訊
-        Route::get('/user', [UserController::class, 'getUser']);
-        Route::get('/user/courses', [UserController::class, 'getUserCourses']);
-        Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
+        // Route::get('/user', [UserController::class, 'getUser']);
+        // Route::get('/user/courses', [UserController::class, 'getUserCourses']);
+        // Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
     });
 });
