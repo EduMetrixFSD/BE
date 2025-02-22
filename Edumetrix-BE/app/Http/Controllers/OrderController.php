@@ -5,35 +5,37 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Cart;
 use App\Models\OrderItem;
-use GuzzleHttp\Client;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
     public function createOrder(Request $request)
     {
-        // 確保用戶已登入
         $user = auth()->user();
-        
-        // 取得用戶的購物車
         $cartItems = Cart::where('user_id', $user->id)->get();
+
         if ($cartItems->isEmpty()) {
             return response()->json(['message' => '購物車為空，無法結帳'], 400);
         }
 
-        // 計算總金額
         $totalAmount = 0;
         foreach ($cartItems as $cartItem) {
             $totalAmount += $cartItem->course->price * $cartItem->quantity;
         }
+
+        // **生成唯一訂單編號**
+        $merchantTradeNo = 'ECPAY' . time();
 
         // 創建訂單
         $order = Order::create([
             'user_id' => $user->id,
             'status' => 'pending',
             'total_price' => $totalAmount,
+            'merchant_trade_no' => $merchantTradeNo,  // 存入唯一訂單編號
+            'order_number' => 'ORD-' . strtoupper(Str::random(10)), // 生成訂單號碼
         ]);
 
-        // 創建訂單細項
         foreach ($cartItems as $cartItem) {
             OrderItem::create([
                 'order_id' => $order->id,
@@ -43,41 +45,66 @@ class OrderController extends Controller
             ]);
         }
 
-        // 清空購物車
         Cart::where('user_id', $user->id)->delete();
 
-        // 調用綠界支付 API
-        $client = new Client();
-        $response = $client->post('https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5', [
-            'form_params' => [
-                'MerchantID' => env('ECPAY_MERCHANT_ID'),  // 綠界商戶 ID
-                'TradeNo' => $order->id,
-                'TotalAmount' => $totalAmount,
-                'ItemDesc' => '訂單商品',  // 商品描述
-                'ReturnURL' => url('/order/callback'),  // 支付完成後返回的 URL
-                'NotifyURL' => url('/order/notify'),  // 支付通知 URL
-            ]
-        ]);
+        // **產生綠界支付表單**
+        try {
+            $obj = new \ECPay_AllInOne();
+            $obj->ServiceURL  = env('ECPAY_SERVICE_URL', 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5');
+            $obj->HashKey     = env('ECPAY_HASH_KEY');
+            $obj->HashIV      = env('ECPAY_HASH_IV');
+            $obj->MerchantID  = env('ECPAY_MERCHANT_ID');
+            $obj->EncryptType = '1';
 
-        // 處理支付回應，並更新訂單狀態
-        $paymentUrl = (string)$response->getBody();  // 綠界回傳支付頁面的 URL
-        return response()->json(['payment_url' => $paymentUrl]);
+            $obj->Send['ReturnURL']     = url('/order/callback');
+            $obj->Send['ClientBackURL'] = url('/order/success');
+            $obj->Send['MerchantTradeNo']   = $merchantTradeNo;
+            $obj->Send['MerchantTradeDate'] = now()->format('Y/m/d H:i:s');
+            $obj->Send['TotalAmount']       = $totalAmount;
+            $obj->Send['TradeDesc']         = "訂單付款";
+            $obj->Send['ChoosePayment']     = \ECPay_PaymentMethod::Credit;
+
+            foreach ($cartItems as $cartItem) {
+                array_push($obj->Send['Items'], [
+                    'Name'     => $cartItem->course->title,
+                    'Price'    => (int) $cartItem->course->price,
+                    'Currency' => "元",
+                    'Quantity' => $cartItem->quantity,
+                    'URL'      => "http://127.0.0.1:8000/course/{$cartItem->course_id}"
+                ]);
+            }
+
+            // 產生表單
+            $formHTML = $obj->CheckOutString();
+            return response()->json(['form' => $formHTML]);
+
+        } catch (\Exception $e) {
+            Log::error('綠界支付錯誤: ' . $e->getMessage());
+            return response()->json(['message' => '支付失敗', 'error' => $e->getMessage()], 500);
+        }
     }
 
     public function handlePaymentCallback(Request $request)
     {
-        // 收到綠界支付結果回傳
-        // 這裡會根據綠界回傳的支付結果來更新訂單狀態
-        $order = Order::find($request->TradeNo);
+        Log::info('綠界支付回調: ', $request->all());
 
-        if ($request->RtnCode == 1) {
-            $order->status = 'paid';  // 訂單支付成功
+        // 檢查交易編號是否存在
+        $order = Order::where('merchant_trade_no', $request->MerchantTradeNo)->first();
+
+        if (!$order) {
+            return response()->json(['message' => '訂單不存在'], 400);
+        }
+
+        // **處理付款狀態**
+        if ($request->RtnCode == 1 || $request->RtnCode == 800) {
+            $order->status = 'paid';
+            $order->paid_at = now();
         } else {
-            $order->status = 'failed';  // 訂單支付失敗
+            $order->status = 'failed';
         }
 
         $order->save();
 
-        return response()->json(['message' => '支付結果更新']);
+        return response()->json(['message' => '支付狀態已更新']);
     }
 }
