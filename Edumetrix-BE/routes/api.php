@@ -65,8 +65,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     // 訂單相關路由
     Route::prefix('order')->group(function () {
-        Route::post('/create', [OrderController::class, 'createOrder']);
+        Route::post('/create', [OrderController::class, 'createOrder']);    
+        Route::get('/', [OrderController::class, 'getUserOrders']); // 查詢用戶所有訂單
+        Route::get('/{id}', [OrderController::class, 'getOrderDetails']); // 查詢單筆訂單
+        Route::post('/{id}/cancel', [OrderController::class, 'cancelOrder']); // 取消訂單   
+
         Route::post('/callback', [OrderController::class, 'handlePaymentCallback']);
-        Route::get('/user/orders', [OrderController::class, 'getUserOrders']);
     });
 });

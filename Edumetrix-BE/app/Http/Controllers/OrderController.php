@@ -7,9 +7,17 @@ use App\Models\Cart;
 use App\Models\OrderItem;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use TsaiYiHua\ECPay\Checkout; // 使用 laravel-ecpay 套件
 
 class OrderController extends Controller
 {
+    protected $checkout;
+
+    public function __construct(Checkout $checkout)
+    {
+        $this->checkout = $checkout;
+    }
+
     public function createOrder(Request $request)
     {
         $user = auth()->user();
@@ -21,7 +29,14 @@ class OrderController extends Controller
 
         $totalAmount = 0;
         foreach ($cartItems as $cartItem) {
+            if (!$cartItem->course) {
+                return response()->json(['message' => '無效的商品'], 400);
+            }
             $totalAmount += $cartItem->course->price * $cartItem->quantity;
+        }
+
+        if ($totalAmount <= 0) {
+            return response()->json(['message' => '訂單金額無效'], 400);
         }
 
         // **生成唯一訂單編號**
@@ -32,8 +47,10 @@ class OrderController extends Controller
             'user_id' => $user->id,
             'status' => 'pending',
             'total_price' => $totalAmount,
-            'merchant_trade_no' => $merchantTradeNo,  // 存入唯一訂單編號
-            'order_number' => 'ORD-' . strtoupper(Str::random(10)), // 生成訂單號碼
+            'merchant_trade_no' => $merchantTradeNo,  // 確保這裡與資料表欄位名稱一致
+            'order_number' => 'ORD-' . strtoupper(Str::random(10)),
+            'payment_method' => 'Credit', // 假設使用信用卡支付
+            'trade_no' => $merchantTradeNo, // 假設使用綠界的交易編號
         ]);
 
         foreach ($cartItems as $cartItem) {
@@ -49,62 +66,101 @@ class OrderController extends Controller
 
         // **產生綠界支付表單**
         try {
-            $obj = new \ECPay_AllInOne();
-            $obj->ServiceURL  = env('ECPAY_SERVICE_URL', 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5');
-            $obj->HashKey     = env('ECPAY_HASH_KEY');
-            $obj->HashIV      = env('ECPAY_HASH_IV');
-            $obj->MerchantID  = env('ECPAY_MERCHANT_ID');
-            $obj->EncryptType = '1';
+            $formData = [
+                'MerchantID'       => env('ECPAY_MERCHANT_ID'), 
+                'PaymentType'      => 'aio',
+                'TradeDesc'        => '訂單付款',
+                'ChoosePayment'    => 'Credit',
+                'UserId' => $user->id,
+                'ItemDescription' => '訂單付款',
+                'ItemName' => '訂單 ' . $merchantTradeNo,
+                'TotalAmount' => $totalAmount,
+                'PaymentMethod' => 'Credit',
+                'MerchantTradeNo' => $merchantTradeNo,
+                'MerchantTradeDate' => now()->format('Y/m/d H:i:s'),
+                'ReturnURL' => url('/callback'),
+                'ClientBackURL' => url('/success'),
+            ];
 
-            $obj->Send['ReturnURL']     = url('/order/callback');
-            $obj->Send['ClientBackURL'] = url('/order/success');
-            $obj->Send['MerchantTradeNo']   = $merchantTradeNo;
-            $obj->Send['MerchantTradeDate'] = now()->format('Y/m/d H:i:s');
-            $obj->Send['TotalAmount']       = $totalAmount;
-            $obj->Send['TradeDesc']         = "訂單付款";
-            $obj->Send['ChoosePayment']     = \ECPay_PaymentMethod::Credit;
+            $paymentForm = $this->checkout->setPostData($formData)->send();
 
-            foreach ($cartItems as $cartItem) {
-                array_push($obj->Send['Items'], [
-                    'Name'     => $cartItem->course->title,
-                    'Price'    => (int) $cartItem->course->price,
-                    'Currency' => "元",
-                    'Quantity' => $cartItem->quantity,
-                    'URL'      => "http://127.0.0.1:8000/course/{$cartItem->course_id}"
-                ]);
-            }
-
-            // 產生表單
-            $formHTML = $obj->CheckOutString();
-            return response()->json(['form' => $formHTML]);
+            return response()->json(['form' => $paymentForm]);
 
         } catch (\Exception $e) {
             Log::error('綠界支付錯誤: ' . $e->getMessage());
+            // ❗ 如果支付請求失敗，刪除訂單，避免錯誤訂單
+                $order->delete();
             return response()->json(['message' => '支付失敗', 'error' => $e->getMessage()], 500);
         }
+       
     }
 
     public function handlePaymentCallback(Request $request)
     {
         Log::info('綠界支付回調: ', $request->all());
 
-        // 檢查交易編號是否存在
-        $order = Order::where('merchant_trade_no', $request->MerchantTradeNo)->first();
+
+        if (!$request->has('MerchantTradeNo') || !$request->has('RtnCode')) {
+            Log::error('缺少必要的參數', $request->all());  // 輸出回傳資料，便於排查
+            return response()->json(['message' => '缺少必要參數'], 400);
+        }
+    
+        // 驗證交易是否有效
+        $order = Order::where('trade_no', $request->MerchantTradeNo)->first();
 
         if (!$order) {
+            Log::error('找不到訂單：' . $request->MerchantTradeNo);
             return response()->json(['message' => '訂單不存在'], 400);
         }
 
-        // **處理付款狀態**
-        if ($request->RtnCode == 1 || $request->RtnCode == 800) {
-            $order->status = 'paid';
-            $order->paid_at = now();
-        } else {
-            $order->status = 'failed';
-        }
-
-        $order->save();
+        // **檢查交易結果**
+    if (in_array($request->RtnCode, [1, 800])) {
+        $order->update([
+            'status' => 'paid',
+            'paid_at' => now()
+        ]);
+    } else {
+        $order->update(['status' => 'failed']);
+    }
 
         return response()->json(['message' => '支付狀態已更新']);
     }
+    public function getUserOrders()
+    {
+        $user = auth()->user();
+        $orders = Order::where('user_id', $user->id)->with('orderItems.course')->get();
+
+        return response()->json($orders);
+    }
+
+    public function getOrderDetails($id)
+    {
+        $user = auth()->user();
+        $order = Order::where('id', $id)->where('user_id', $user->id)->with('orderItems.course')->first();
+
+        if (!$order) {
+        return response()->json(['message' => '訂單不存在'], 404);
+        }
+
+        return response()->json($order);
+    }
+
+    public function cancelOrder($id)
+    {
+        $user = auth()->user();
+        $order = Order::where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$order) {
+            return response()->json(['message' => '訂單不存在'], 404);
+        }
+
+        if ($order->status !== 'pending') {
+            return response()->json(['message' => '訂單已支付或已取消，無法取消'], 400);
+        }
+
+        $order->update(['status' => 'cancelled']);
+
+        return response()->json(['message' => '訂單已取消']);
+    }
+
 }

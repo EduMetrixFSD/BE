@@ -181,6 +181,7 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
+        TsaiYiHua\ECPay\ECPayServiceProvider::class,
 
         /*
          * Package Service Providers...
