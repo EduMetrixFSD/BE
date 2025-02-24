@@ -129,6 +129,9 @@ class OrderController extends Controller
             // 計算 CheckMacValue
             $formData['CheckMacValue'] = $this->generateCheckMacValue($formData);
 
+            // 紀錄表單數據到日誌
+            Log::info('Generated Payment Form:', ['payment_form' => $formData]);
+
             $paymentForm = $this->checkout->setPostData($formData)->send();
 
             return response()->json(['form' => $paymentForm]);

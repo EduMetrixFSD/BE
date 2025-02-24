@@ -3,7 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 // ------------------------------------------ 註冊、登入、登出、忘記密碼、重設密碼、Google登入
-// Google登入還沒有設置金鑰
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -30,7 +29,7 @@ use App\Http\Controllers\OrderController;
 // (1) 公開路由：不需要驗證
 Route::prefix('auth')->group(function () {
     Route::post('/register', [RegisterController::class, 'register']);
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->name('login');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'forgotPassword']);
     Route::post('/reset-password', [ResetPasswordController::class, 'resetPassword']);
 
@@ -65,7 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     // 訂單相關路由
     Route::prefix('order')->group(function () {
-        Route::get('/create', [OrderController::class, 'createOrder']);    
+        Route::post('/create', [OrderController::class, 'createOrder']);    
         Route::get('/', [OrderController::class, 'getUserOrders']); // 查詢用戶所有訂單
         Route::get('/{id}', [OrderController::class, 'getOrderDetails']); // 查詢單筆訂單
         Route::post('/{id}/cancel', [OrderController::class, 'cancelOrder']); // 取消訂單   
@@ -73,5 +72,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/callback', [OrderController::class, 'handlePaymentCallback']);
         Route::get('/success', [OrderController::class, 'paymentSuccess']);
 
+    });
+
+    // 收藏相關路由
+    Route::prefix('favorite')->group(function() {
+        Route::post('/{courseId}', [FavoriteController::class, 'store']);
+        Route::delete('/{courseId', [FavoriteController::class, 'destory']);
+        Route::get('/', [FavoriteController::class, 'index']);
     });
 });
