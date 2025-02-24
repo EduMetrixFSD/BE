@@ -47,4 +47,5 @@ class LoginController extends Controller
             'expires_at' => $expiration,
         ]);
     }
+
 }

@@ -18,6 +18,34 @@ class OrderController extends Controller
         $this->checkout = $checkout;
     }
 
+    private function generateCheckMacValue($data)
+    {
+        $hashKey = env('ECPAY_HASH_KEY');
+        $hashIV = env('ECPAY_HASH_IV');
+
+        // 1. 按照 key 的字母順序排序
+        ksort($data);
+
+        // 2. 以 & 方式串連參數
+        $queryString = urldecode(http_build_query($data));
+
+        // 3. 前後加上 HashKey 和 HashIV
+        $queryString = "HashKey={$hashKey}&{$queryString}&HashIV={$hashIV}";
+
+        // 4. URL encode，並進行字元轉換
+        $queryString = urlencode($queryString);
+        $queryString = str_replace(['%2d', '%5f', '%2e', '%21', '%2a', '%28', '%29'], ['-', '_', '.', '!', '*', '(', ')'], $queryString);
+
+        // 5. 轉為小寫
+        $queryString = strtolower($queryString);
+
+        // 6. SHA256 雜湊計算
+        $checkMacValue = hash('sha256', $queryString);
+
+        // 7. 轉為大寫
+        return strtoupper($checkMacValue);
+    }
+
     public function createOrder(Request $request)
     {
         $user = auth()->user();
@@ -47,7 +75,6 @@ class OrderController extends Controller
             'user_id' => $user->id,
             'status' => 'pending',
             'total_price' => $totalAmount,
-            'merchant_trade_no' => $merchantTradeNo,  // 確保這裡與資料表欄位名稱一致
             'order_number' => 'ORD-' . strtoupper(Str::random(10)),
             'payment_method' => 'Credit', // 假設使用信用卡支付
             'trade_no' => $merchantTradeNo, // 假設使用綠界的交易編號
@@ -66,21 +93,41 @@ class OrderController extends Controller
 
         // **產生綠界支付表單**
         try {
+            $itemNames = [];
+            $itemDescriptions = [];
+            foreach ($cartItems as $cartItem) {
+                if ($cartItem->course) { // 確保課程存在
+                    $itemNames[] = $cartItem->course->title; // 課程標題
+                    $itemDescriptions[] = $cartItem->course->description; // 課程描述
+                }
+            }
+            // 綠界的 `ItemName` 是用 `#` 分隔多個商品名稱
+            $itemNameString = implode('#', $itemNames);
+
+            // `ItemDescription` 可以拼接所有課程描述，或者只取前幾個字避免超長
+            $itemDescriptionString = implode(' | ', array_map(fn($desc) => mb_substr($desc, 0, 50), $itemDescriptions));
+
             $formData = [
                 'MerchantID'       => env('ECPAY_MERCHANT_ID'), 
                 'PaymentType'      => 'aio',
                 'TradeDesc'        => '訂單付款',
                 'ChoosePayment'    => 'Credit',
                 'UserId' => $user->id,
-                'ItemDescription' => '訂單付款',
-                'ItemName' => '訂單 ' . $merchantTradeNo,
+                'ItemDescription' => $itemDescriptionString,
+                'ItemName' => $itemNameString,
                 'TotalAmount' => $totalAmount,
                 'PaymentMethod' => 'Credit',
                 'MerchantTradeNo' => $merchantTradeNo,
                 'MerchantTradeDate' => now()->format('Y/m/d H:i:s'),
                 'ReturnURL' => url('/callback'),
                 'ClientBackURL' => url('/success'),
+                'EncryptType' => 1, 
+                'Rdeem' => 'N', // 紅利折抵: 不啟用
+                'UnionPay' => 0, // 銀聯卡: 禁用
             ];
+
+            // 計算 CheckMacValue
+            $formData['CheckMacValue'] = $this->generateCheckMacValue($formData);
 
             $paymentForm = $this->checkout->setPostData($formData)->send();
 
@@ -161,6 +208,13 @@ class OrderController extends Controller
         $order->update(['status' => 'cancelled']);
 
         return response()->json(['message' => '訂單已取消']);
+    }
+    public function paymentSuccess(Request $request)
+    {
+        return response()->json([
+            'message' => '支付成功！',
+            'order_id' => $request->input('order_id')
+        ]);
     }
 
 }
