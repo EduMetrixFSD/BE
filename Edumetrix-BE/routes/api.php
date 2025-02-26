@@ -11,9 +11,14 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\SocialLoginController;
 // ------------------------------------------ 取得用戶資料、更新個人資料、用戶課程清單等功能
 use App\Http\Controllers\UserController; 
-use App\Http\Controllers\CourseController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ProgressController;
+use App\Http\Controllers\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,7 +45,7 @@ Route::prefix('auth')->group(function () {
 });
 // (2) 課程相關路由
 Route::prefix('courses')->group(function () {
-    Route::get('/search', [CourseController::class, 'search']);
+    Route::get('/search', [SearchController::class, 'search']);
 });
 
 
@@ -80,4 +85,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{courseId', [FavoriteController::class, 'destory']);
         Route::get('/', [FavoriteController::class, 'index']);
     });
+    // 老師後台
+    Route::prefix('teacher')->group(function() {
+        Route::post('/courses', [CourseController::class, 'store']);
+        Route::put('/courses/{id}', [CourseController::class, 'update']);
+        Route::delete('/courses/{id}', [CourseController::class, 'destroy']);
+        Route::post('/courses/{id}/upload', [CourseController::class, 'uploadFile']);
+    });
+
+    // 管理員 API
+    Route::prefix('teacher')->group(function() {
+        Route::get('/admin/users', [AdminController::class, 'getUsers']);
+        Route::get('/admin/courses', [AdminController::class, 'getCourses']);
+        Route::get('/admin/orders', [AdminController::class, 'getOrders']);
+        Route::delete('/admin/reviews/{id}', [AdminController::class, 'deleteReview']);
+
+    });
+    // 進度追蹤
+    Route::get('/progress/{course_id}', [ProgressController::class, 'show']);
+    Route::post('/progress/{course_id}', [ProgressController::class, 'update']);
+
+    // 課程評價
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::get('/reviews/{course_id}', [ReviewController::class, 'index']);
 });

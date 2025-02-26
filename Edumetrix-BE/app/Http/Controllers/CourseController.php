@@ -4,61 +4,65 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Course;
+use Illuminate\Support\Facades\Storage;
 
 class CourseController extends Controller
 {
-    /**
-     * 搜尋課程
-     */
-    public function search(Request $request)
+    // 新增課程
+    public function store(Request $request)
     {
-        // 取得查詢參數
-        $query = Course::query();
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric',
+        ]);
 
-        // 關鍵字搜尋 (標題 & 描述)
-        if ($request->has('keyword')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'LIKE', '%' . $request->keyword . '%')
-                  ->orWhere('description', 'LIKE', '%' . $request->keyword . '%');
-            });
-        }
+        $course = Course::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'price' => $request->price,
+            'teacher_id' => auth()->id(),
+        ]);
 
-        // 分類篩選
-        if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
+        return response()->json($course, 201);
+    }
 
-        // 標籤篩選
-        if ($request->has('tag')) {
-            $query->whereHas('tags', function ($q) use ($request) {
-                $q->where('name', $request->tag);
-            });
-        }
+    // 更新課程
+    public function update(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
 
-        // 排序 (最新, 最熱門, 最高評價, 最便宜)
-        if ($request->has('sort_by')) {
-            switch ($request->sort_by) {
-                case 'latest':
-                    $query->orderBy('created_at', 'desc');
-                    break;
-                case 'popular':
-                    $query->orderBy('enrolled_students', 'desc');
-                    break;
-                case 'rating':
-                    $query->orderBy('average_rating', 'desc');
-                    break;
-                case 'price_asc':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'price_desc':
-                    $query->orderBy('price', 'desc');
-                    break;
-            }
-        }
+        $this->authorize('update', $course);
 
-        // 取得結果
-        $courses = $query->paginate(10);
+        $course->update($request->only(['title', 'description', 'price']));
 
-        return response()->json($courses);
+        return response()->json($course);
+    }
+
+    // 刪除課程
+    public function destroy($id)
+    {
+        $course = Course::findOrFail($id);
+
+        $this->authorize('delete', $course);
+
+        $course->delete();
+
+        return response()->json(['message' => '課程已刪除']);
+    }
+
+    // 上傳課程影片/PDF
+    public function uploadFile(Request $request, $id)
+    {
+        $request->validate([
+            'file' => 'required|mimes:mp4,pdf|max:50000'
+        ]);
+
+        $course = Course::findOrFail($id);
+        $this->authorize('update', $course);
+
+        $path = $request->file('file')->store('courses/' . $id, 'public');
+
+        return response()->json(['file_path' => $path]);
     }
 }
